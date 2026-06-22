@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   parseWorkbook,
   validate,
-  generateCsv,
+  generateCsvFiles,
   deriveMonthYearMap,
+  PROPERTIES_PER_FILE,
 } from "@/lib/etl";
 
 const CURRENT_YEAR = 2026;
@@ -157,23 +158,38 @@ export default function Home() {
     [yardiInputs, boardName]
   );
 
-  const onExport = useCallback(() => {
-    if (!parsed) return;
-    const csv = generateCsv(parsed, mapping, {
-      budgetYear: Number(budgetYear),
-      bookNum: Number(bookNum),
-      fiscalStart: Number(fiscalStart),
-    });
+  const downloadCsv = useCallback((csv, name) => {
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `yardi-etl-${budgetYear}.csv`;
+    a.download = name;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [parsed, mapping, budgetYear, bookNum, fiscalStart]);
+  }, []);
+
+  const onExport = useCallback(() => {
+    if (!parsed) return;
+    const files = generateCsvFiles(parsed, mapping, {
+      budgetYear: Number(budgetYear),
+      bookNum: Number(bookNum),
+      fiscalStart: Number(fiscalStart),
+    });
+
+    if (files.length === 1) {
+      downloadCsv(files[0].csv, `yardi-etl-${budgetYear}.csv`);
+      return;
+    }
+
+    // >10 properties: download a batch of files, staggered so the browser
+    // doesn't drop the rapid-fire downloads.
+    files.forEach((file, i) => {
+      const name = `yardi-etl-${budgetYear}-part${i + 1}of${files.length}.csv`;
+      setTimeout(() => downloadCsv(file.csv, name), i * 400);
+    });
+  }, [parsed, mapping, budgetYear, bookNum, fiscalStart, downloadCsv]);
 
   const canExport =
     parsed && checks && !checks.hasBlockingErrors && !mappingLoading;
@@ -456,11 +472,20 @@ export default function Home() {
           <h2>Export</h2>
           <div className="btn-row">
             <button className="btn" disabled={!canExport} onClick={onExport}>
-              Export ETL CSV
+              {canExport && checks.fileCount > 1
+                ? `Export ${checks.fileCount} ETL CSVs`
+                : "Export ETL CSV"}
             </button>
             <span className="export-note">
               {canExport
-                ? `${checks.exportableRows} row(s) will be written` +
+                ? `${checks.exportableRows} row(s) across ${
+                    checks.exportablePropertyCount
+                  } propert${
+                    checks.exportablePropertyCount === 1 ? "y" : "ies"
+                  }` +
+                  (checks.fileCount > 1
+                    ? ` will be split into ${checks.fileCount} files of ≤${PROPERTIES_PER_FILE} properties each`
+                    : " will be written") +
                   (checks.excludedProperties > 0
                     ? `; ${checks.excludedProperties} flagged propert${
                         checks.excludedProperties === 1 ? "y" : "ies"

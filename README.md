@@ -28,6 +28,9 @@ Deploys to **Vercel** with a serverless proxy that hides the Monday API key and 
    - GL starts with **2** → kept as-is (stays negative)
    - all other GLs → kept as-is
    All-zero rows and flagged properties are dropped.
+   If more than 10 exportable properties are present, the export is split into
+   multiple CSV files of ≤10 properties each (`...-part1of3.csv`, etc.), with
+   `TranNum` restarting at 1 in each file.
 
 ### Export format
 
