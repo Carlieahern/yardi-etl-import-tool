@@ -5,6 +5,7 @@ import {
   parseWorkbook,
   validate,
   generateCsvFiles,
+  buildExportFiles,
   deriveMonthYearMap,
   PROPERTIES_PER_FILE,
 } from "@/lib/etl";
@@ -82,6 +83,20 @@ export default function Home() {
     if (!parsed) return null;
     return validate(parsed, mapping);
   }, [parsed, mapping]);
+
+  // Preview the actual export rows/files (after month alignment + year split).
+  const exportPreview = useMemo(() => {
+    if (!parsed) return null;
+    const files = buildExportFiles(parsed, mapping, {
+      budgetYear: Number(budgetYear),
+      bookNum: Number(bookNum),
+      fiscalStart: Number(fiscalStart),
+    });
+    return {
+      fileCount: files.length,
+      totalRows: files.reduce((sum, f) => sum + f.dataRows.length, 0),
+    };
+  }, [parsed, mapping, budgetYear, bookNum, fiscalStart]);
 
   const handleFile = useCallback(async (file) => {
     if (!file) return;
@@ -472,19 +487,19 @@ export default function Home() {
           <h2>Export</h2>
           <div className="btn-row">
             <button className="btn" disabled={!canExport} onClick={onExport}>
-              {canExport && checks.fileCount > 1
-                ? `Export ${checks.fileCount} ETL CSVs`
+              {canExport && exportPreview.fileCount > 1
+                ? `Export ${exportPreview.fileCount} ETL CSVs`
                 : "Export ETL CSV"}
             </button>
             <span className="export-note">
               {canExport
-                ? `${checks.exportableRows} row(s) across ${
+                ? `${exportPreview.totalRows} export row(s) across ${
                     checks.exportablePropertyCount
                   } propert${
                     checks.exportablePropertyCount === 1 ? "y" : "ies"
                   }` +
-                  (checks.fileCount > 1
-                    ? ` will be split into ${checks.fileCount} files of ≤${PROPERTIES_PER_FILE} properties each`
+                  (exportPreview.fileCount > 1
+                    ? ` will be split into ${exportPreview.fileCount} files of ≤${PROPERTIES_PER_FILE} properties each`
                     : " will be written") +
                   (checks.excludedProperties > 0
                     ? `; ${checks.excludedProperties} flagged propert${

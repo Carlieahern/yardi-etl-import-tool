@@ -27,7 +27,13 @@ Deploys to **Vercel** with a serverless proxy that hides the Monday API key and 
    - GL starts with **1** → sign switched (negative → positive)
    - GL starts with **2** → kept as-is (stays negative)
    - all other GLs → kept as-is
-   All-zero rows and flagged properties are dropped.
+
+   **Month alignment & year split:** the 12 fiscal-ordered values are placed into
+   their calendar-month columns based on the Fiscal Start Month (e.g. start = 4 →
+   first value lands in `MtdBudget4`). When a fiscal year crosses December, each GL
+   becomes two rows: one with `Year` = the start year (Apr–Dec data, Jan–Mar = 0)
+   and one with `Year` = the next year (Jan–Mar data, Apr–Dec = 0). All-zero rows
+   and flagged properties are dropped.
    If more than 10 exportable properties are present, the export is split into
    multiple CSV files of ≤10 properties each (`...-part1of3.csv`, etc.), with
    `TranNum` restarting at 1 in each file.
