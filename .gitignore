@@ -8,3 +8,6 @@
 *.pem
 npm-debug.log*
 .vercel
+
+# Local agent / editor config
+.claude/
