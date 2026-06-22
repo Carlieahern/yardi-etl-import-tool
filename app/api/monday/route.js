@@ -9,7 +9,7 @@ const MONDAY_URL = "https://api.monday.com/v2";
 const API_VERSION = "2024-01";
 
 const BUDGETING_ID_TITLE = "Budgeting ID";
-const PMS_TITLE = "PMS";
+const PMS_TITLE = "PMS ID";
 
 async function mondayQuery(query, variables) {
   const apiKey = process.env.MONDAY_API_KEY;

@@ -8,7 +8,7 @@ Deploys to **Vercel** with a serverless proxy that hides the Monday API key and 
 
 1. **Pick the budget year** (2026 / 2027). The app fetches the matching Monday board
    (`"<year> Budget Status"`) via `/api/monday` and reads each item's **Budgeting ID**
-   (RealPage code) and **PMS** (Yardi code) columns into a mapping.
+   (RealPage code) and **PMS ID** (Yardi code) columns into a mapping.
 2. **Upload the RealPage export.** Parsed client-side with SheetJS:
    - Row 1 = fiscal-year per month column (may roll over to the next calendar year mid-row)
    - Row 2 = month numbers (may not start at 1)
