@@ -8,7 +8,11 @@ import {
 } from "@/lib/etl";
 
 const CURRENT_YEAR = 2026;
-const YEARS = [2026, 2027];
+// Set `available: false` for any year whose Monday board doesn't exist yet.
+const YEARS = [
+  { year: 2026, available: true },
+  { year: 2027, available: false },
+];
 const BOOK_OPTIONS = [
   { value: 0, label: "Cash (0)" },
   { value: 1, label: "Accrual (1)" },
@@ -183,13 +187,16 @@ export default function Home() {
           </div>
         </div>
         <div className="year-toggle">
-          {YEARS.map((y) => (
+          {YEARS.map(({ year, available }) => (
             <button
-              key={y}
-              className={selectedYear === y ? "active" : ""}
-              onClick={() => setSelectedYear(y)}
+              key={year}
+              className={selectedYear === year ? "active" : ""}
+              disabled={!available}
+              title={available ? undefined : `${year} Budget Status board not ready yet`}
+              onClick={() => available && setSelectedYear(year)}
             >
-              {y}
+              {year}
+              {!available ? " (soon)" : ""}
             </button>
           ))}
         </div>

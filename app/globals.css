@@ -96,6 +96,11 @@ body {
   color: #fff;
 }
 
+.year-toggle button:disabled {
+  color: #b3bac6;
+  cursor: not-allowed;
+}
+
 .config-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
