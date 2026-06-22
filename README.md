@@ -9,19 +9,25 @@ Deploys to **Vercel** with a serverless proxy that hides the Monday API key and 
 1. **Pick the budget year** (2026 / 2027). The app fetches the matching Monday board
    (`"<year> Budget Status"`) via `/api/monday` and reads each item's **Budgeting ID**
    (RealPage code) and **PMS ID** (Yardi code) columns into a mapping.
-2. **Upload the RealPage export.** Parsed client-side with SheetJS:
-   - Row 1 = fiscal-year per month column (may roll over to the next calendar year mid-row)
-   - Row 2 = month numbers (may not start at 1)
-   - Row 3+ = data: col B = RealPage code, col C = GL account, cols D–O = 12 monthly values
+2. **Upload the RealPage export** (`.xlsx` / `.xls` / `.xlsm`). Parsed client-side
+   with SheetJS. No header rows — data starts on row 1:
+   - Col A = RealPage property code
+   - Col B = GL account code
+   - Cols C–N = 12 monthly budget values
 3. **Validation** runs automatically:
-   - Unmapped RealPage properties (not in Monday)
-   - Mapped properties with a blank Yardi (PMS) ID
-   - Balance-sheet GL accounts (code starts with `1` or `2`) carrying non-zero values
+   - Unmapped RealPage properties (not in Monday) — **blocks export**
+   - Mapped properties with a blank Yardi (PMS ID) — **blocks export**
+   - Balance-sheet GLs (code starts with `1` or `2`) must be budgeted **negative**.
+     If any such GL is budgeted **positive**, the **entire property** is flagged
+     (with its Monday property name) and excluded from the export.
    - All-zero rows (excluded from export; count shown)
 4. **Resolve unmapped properties** inline — enter a Yardi ID and **Save to Monday**
    (creates/updates the board item by matching on Budgeting ID). Validation re-runs.
-5. **Export ETL CSV** once there are no blocking errors. Revenue accounts
-   (GL `< 20000000`) are sign-inverted; all-zero rows are dropped.
+5. **Export ETL CSV.** Sign handling on export:
+   - GL starts with **1** → sign switched (negative → positive)
+   - GL starts with **2** → kept as-is (stays negative)
+   - all other GLs → kept as-is
+   All-zero rows and flagged properties are dropped.
 
 ### Export format
 

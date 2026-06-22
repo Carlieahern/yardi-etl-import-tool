@@ -5,6 +5,7 @@ import {
   parseWorkbook,
   validate,
   generateCsv,
+  deriveMonthYearMap,
 } from "@/lib/etl";
 
 const CURRENT_YEAR = 2026;
@@ -135,8 +136,9 @@ export default function Home() {
         if (!res.ok) throw new Error(data.error || "Save failed.");
         // Update local mapping so validation re-runs and removes the row.
         setMapping((prev) => {
+          const existing = prev.find((m) => m.rpId === rpId);
           const next = prev.filter((m) => m.rpId !== rpId);
-          next.push({ rpId, yardiId });
+          next.push({ rpId, yardiId, name: existing?.name || rpId });
           return next;
         });
         setSaveStatus((s) => ({
@@ -283,13 +285,14 @@ export default function Home() {
             browse.
           </div>
           <div className="hint">
-            Row 1 = fiscal years, Row 2 = month numbers, Row 3+ = data.
+            Col A = RealPage code, Col B = GL account, Cols C–N = 12 monthly
+            values (no header rows).
           </div>
           {fileName && <div className="filename">{fileName}</div>}
           <input
             ref={fileInputRef}
             type="file"
-            accept=".xlsx,.xls"
+            accept=".xlsx,.xls,.xlsm"
             style={{ display: "none" }}
             onChange={(e) => handleFile(e.target.files?.[0])}
           />
@@ -301,8 +304,8 @@ export default function Home() {
         )}
         {parsed && (
           <div className="export-note" style={{ marginTop: 12 }}>
-            Period mapping:{" "}
-            {parsed.periods
+            Periods (from fiscal start {fiscalStart}, year {budgetYear}):{" "}
+            {deriveMonthYearMap(fiscalStart, budgetYear)
               .map((p) => `${p.month}/${p.year}`)
               .join(" · ")}
           </div>
@@ -337,15 +340,20 @@ export default function Home() {
           />
 
           <CheckRow
-            status={checks.balanceSheetErrors.length === 0 ? "pass" : "error"}
-            title="No balance-sheet GL accounts with values"
+            status={checks.balanceErrors.length === 0 ? "pass" : "error"}
+            title="Balance-sheet GLs (1 / 2) budgeted correctly"
             detail={
-              checks.balanceSheetErrors.length === 0
-                ? "No GL codes starting with 1 or 2 carry non-zero values."
-                : `${checks.balanceSheetErrors.length} balance-sheet GL row(s) have non-zero values.`
+              checks.balanceErrors.length === 0
+                ? "All GL codes starting with 1 or 2 are budgeted negative."
+                : `${checks.balanceErrors.length} propert${
+                    checks.balanceErrors.length === 1 ? "y is" : "ies are"
+                  } budgeted wrong (1/2 GL with a positive value). The entire property is excluded — go reject the budget in Monday.`
             }
-            list={checks.balanceSheetErrors.map(
-              (e) => `${e.rpId} — GL ${e.gl}`
+            list={checks.balanceErrors.map(
+              (e) =>
+                `${e.name || e.rpId}${
+                  e.name ? ` (RP ${e.rpId})` : ""
+                } — bad GL(s): ${e.gls.join(", ")}`
             )}
           />
 
@@ -432,15 +440,11 @@ export default function Home() {
             </div>
             <div className="stat warn">
               <div className="num">{checks.excludedRows}</div>
-              <div className="label">Excluded (zero)</div>
+              <div className="label">Rows Excluded</div>
             </div>
             <div className="stat danger">
-              <div className="num">
-                {checks.unmappedRp.length +
-                  checks.unmappedYardi.length +
-                  checks.balanceSheetErrors.length}
-              </div>
-              <div className="label">Rows w/ Errors</div>
+              <div className="num">{checks.excludedProperties}</div>
+              <div className="label">Properties Flagged</div>
             </div>
           </div>
         </div>
@@ -456,10 +460,13 @@ export default function Home() {
             </button>
             <span className="export-note">
               {canExport
-                ? `${
-                    checks.totalRows - checks.excludedRows
-                  } row(s) will be written.`
-                : "Resolve all blocking errors above to enable export."}
+                ? `${checks.exportableRows} row(s) will be written` +
+                  (checks.excludedProperties > 0
+                    ? `; ${checks.excludedProperties} flagged propert${
+                        checks.excludedProperties === 1 ? "y" : "ies"
+                      } excluded.`
+                    : ".")
+                : "Resolve unmapped properties above to enable export."}
             </span>
           </div>
         </div>

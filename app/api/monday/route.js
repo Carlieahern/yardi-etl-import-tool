@@ -119,6 +119,7 @@ async function fetchAllItems(boardId, budgetingColId, pmsColId) {
 
   return items.map((it) => ({
     itemId: it.id,
+    name: it.name,
     rpId: textOf(it, budgetingColId),
     yardiId: textOf(it, pmsColId),
   }));
@@ -146,7 +147,7 @@ export async function POST(request) {
       const rows = await fetchAllItems(boardId, budgetingColId, pmsColId);
       const mapping = rows
         .filter((r) => r.rpId)
-        .map((r) => ({ rpId: r.rpId, yardiId: r.yardiId }));
+        .map((r) => ({ rpId: r.rpId, yardiId: r.yardiId, name: r.name }));
       const unmappedYardi = rows
         .filter((r) => r.rpId && !r.yardiId)
         .map((r) => r.rpId);
